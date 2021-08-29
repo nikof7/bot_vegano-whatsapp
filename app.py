@@ -65,7 +65,6 @@ def mybot():
 	msg_ERROR = "Algo salió mal."
 	msg_ERROR_NUEVO_PRODUCTO_TEXTO = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio."
 	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen."
-	msg_BIENVENIDA = '🌱🤖 Nico, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_  🌸'
 
 	# Variables para manejar los mensajes.
 	resp = MessagingResponse()
@@ -180,7 +179,7 @@ def mybot():
 		if texto_separado[0].lower() == "ayuda" and not responded:
 			msg.body('🌱 Para ayudarte a conocer si un producto es vegano, solo mándanos una foto del _*código de barras*_.\n\n🆘 ¿Quieres ayudar a generar nuestra base de datos?, infórmanos sobre algún producto vegano en este formulario:\nhttps://forms.gle/P7pg5FJSt6dZYFrT9\n\n💰 Si quieres *colaborar* con este emprendimiento, puedes ayudarnos a través de *mercadopago*\nhttps://mpago.la/1G1a9GF')
 			responded = True
-			
+
 		# Solo texto
 		if not incoming_msg_media and not responded:
 			msg.body(f'🌱🤖 *{nombre_usuario}*, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_  🌸')
