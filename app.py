@@ -1,5 +1,3 @@
-from pyzbar.pyzbar import decode
-import cv2
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from twilio.twiml.messaging_response import MessagingResponse
@@ -7,8 +5,8 @@ import urllib3 as urllib
 from PIL import Image
 import requests
 from io import BytesIO
+import cv2
 from pyzbar.pyzbar import decode
-
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bot.db'
@@ -27,7 +25,6 @@ class Productos(db.Model):
 	def __repr__(self):
 		return "<Producto %r>" % self.nombre
 
-
 def imagen_a_codigo(url):
     # Busca un producto, utilizando su código de barras, en la base de datos.
     response = requests.get(url)
@@ -38,7 +35,6 @@ def imagen_a_codigo(url):
     except:
         incoming_codigo = False
     return incoming_codigo
-
 
 def busca_codigo(codigo_leido):
 
@@ -55,7 +51,6 @@ def busca_codigo(codigo_leido):
 		existe = False
 
 	return existe, nombreProducto, esveganProducto
-	
 
 def separa_texto(incoming_msg_body):
 	corrigo1 = incoming_msg_body.replace(" ,", ",")
@@ -66,13 +61,23 @@ def separa_texto(incoming_msg_body):
 @app.route('/mybot', methods = ['POST', 'GET'])
 def mybot():
 	
+	# Variables de respuesta
+	msg_ERROR = "Algo salió mal."
+	msg_ERROR_NUEVO_PRODUCTO_TEXTO = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio"
+	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen"
+	msg_BIENVENIDA = "Para comprobar si un producto es vegano, mandanos una foto del código de barras."
+
+	# Variables para obtener información de mensaje.
 	resp = MessagingResponse()
 	msg = resp.message()
 	recibido = request.values
-	responded = False
-	administradores = ("59898969206","598987967206")
+
+	# Roles
+	administradores = ("59898969206","5989879672061111")
 	es_admin = recibido.get('WaId')
-	
+
+	responded = False
+
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
 	if recibido.get('SmsStatus') == 'received':	
 			
@@ -80,13 +85,81 @@ def mybot():
 		incoming_msg_media = recibido.get('MediaUrl0')
 		texto_separado = separa_texto(incoming_msg_body)
 
+		# Texto e imagen para administradores
+		if incoming_msg_body and incoming_msg_media and es_admin in administradores and not responded:
+
+			# Si el texto empieza con NUEVO, es para agregar un producto.
+			if texto_separado[0].lower() == 'nuevo' and len(texto_separado) >=3 and es_admin in administradores and not responded:
+				
+				codigo_leido = imagen_a_codigo(incoming_msg_media)
+
+				# Se pudo leer la imagen:
+				if codigo_leido != False and not responded: 
+					
+					codigo_existe = busca_codigo(codigo_leido)
+					
+					# Respuesta a cuando el código se encuentra en la base de datos.
+					if codigo_existe[0] ==  True:
+						if codigo_existe[2] == "si":
+							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y es vegano!')
+							responded = True
+						if codigo_existe[2] == "no":
+							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y NO es vegano!')
+							responded = True
+						
+					if codigo_existe[0] == False and texto_separado and not responded:
+					
+						nombre = texto_separado[1]
+						esvegan = texto_separado[2]
+						codigo = int(codigo_leido)
+
+						# Este if es porque los comentarios no son obligatorios.
+						if len(texto_separado) > 3:
+							comentario = texto_separado[3]
+						else:
+							comentario = "Sin comentarios"
+
+						nuevo_producto = Productos(nombre = nombre, esvegan = esvegan, comentario=comentario, codigo=codigo)
+
+						# Añade el nuevo producto a la base de datos.
+						try:
+							db.session.add(nuevo_producto)
+							db.session.commit()
+							msg.body(f'Se agregó el producto {nombre}')
+							responded = True
+						except:
+							msg.body(f'❌ Error al ingresar nuevo producto, prueba nuevamente. ❌')
+							responded = True
+
+				# No se pudo leer la imagen.
+				if codigo_leido == False:
+					msg.body(msg_ERROR_LEER_IMAGEN)
+					responded = True
+
+				# Por las dudas de que exista algún error.
+				else:
+					msg.body(msg_ERROR)
+					responded = True
+
+			# Respuesta cuando el texto está mal.
+			if not responded:
+				msg.body(msg_ERROR_NUEVO_PRODUCTO)
+				responded = True
+
+			# Por las dudas de que exista algún error.
+			else:
+				msg.body(msg_ERROR)
+				responded = True
+
 		# Llega imágen, leo el código y devuelvo si está en la base o no (ignoro texto).
-		if incoming_msg_media and not responded and texto_separado[0].lower() != "nuevo":
+		if incoming_msg_media and not responded:
 			
 			# Leo el codigo de barras de la imagen
 			codigo_leido = imagen_a_codigo(incoming_msg_media)
+
+			# Error al leer la imagen.
 			if codigo_leido == False:
-				msg.body('Asegurate de que la imágen se vea bien.')
+				msg.body(msg_ERROR_LEER_IMAGEN)
 				responded = True
 
 			if codigo_leido != False and not responded: 
@@ -104,70 +177,20 @@ def mybot():
 					msg.body('no está en la base')
 					responded = True 
 
+			# Por las dudas de que exista algún error.
 			if not responded:
-				msg.body(f'El producto no se encuentra en nuestra base de datos, si quieres agregarlo puedes ayudarnos en -> shorturl.at/fovH8 {incoming_msg_media}     {codigo_existe}')
+				msg.body(msg_ERROR)
 				responded = True
 
 		# Solo texto
 		if not incoming_msg_media and not responded:
-			msg.body('Para comprobar si un producto es vegano, mandanos una foto del código de barras.')			
+			msg.body(msg_BIENVENIDA)			
 			responded = True
-
-		# Texto e imagen para administradores
-		if incoming_msg_body and incoming_msg_media and es_admin in administradores and not responded:
-
-			# Si el texto empieza con NUEVO, es para agregar un producto.
-			if texto_separado[0].lower() == 'nuevo' and es_admin in administradores and not responded:
-				
-				codigo_leido = imagen_a_codigo(incoming_msg_media)
-
-				if codigo_leido != False and not responded: 
-					codigo_existe = busca_codigo(codigo_leido)
-					if codigo_existe[0] ==  True:
-						if codigo_existe[2] == "si":
-							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y es vegano!')
-							responded = True
-						if codigo_existe[2] == "no":
-							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y NO es vegano!')
-							responded = True
-						
-					if codigo_existe[0] == False and texto_separado not responded:
-					
-						nombre = texto_separado[1]
-						esvegan = texto_separado[2]
-						codigo = int(incoming_codigo)
-
-						# Este if es porque los comentarios no son obligatorios
-						if len(texto_separado) > 3:
-							comentario = texto_separado[3]
-						else:
-							comentario = "Sin comentarios"
-
-						nuevo_producto = Productos(nombre = nombre, esvegan = esvegan, comentario=comentario, codigo=codigo)
-
-						# Añade el nuevo producto a la base de datos.
-						try:
-							db.session.add(nuevo_producto)
-							db.session.commit()
-							msg.body(f'Se agregó el producto "{nombre}"')
-							responded = True
-						except:
-							msg.body(f'❌ Error al ingresar nuevo producto, prueba nuevamente. ❌')
-							responded = True
-
-				if codigo_leido == False:
-					msg.body('No se pudo leer la imágen')
-					responded = True
-
-			if not responded:
-				msg.body('Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio')
-				responded = True
 
 		if not responded:
-			msg.body(f'Por favor, inténtalo de nuevo.1')
+			msg.body(msg_ERROR)
 			responded = True
 
-	responded = True
 	return str(resp)
 
 if __name__ == "__main__":
