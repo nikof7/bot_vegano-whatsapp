@@ -67,16 +67,15 @@ def mybot():
 	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen."
 	msg_BIENVENIDA = "Para comprobar si un producto es vegano, mandanos una foto del código de barras."
 
-	# Variables para obtener información de mensaje.
+	# Variables para manejar los mensajes.
 	resp = MessagingResponse()
 	msg = resp.message()
 	recibido = request.values
+	responded = False
 
 	# Roles
 	administradores = ("59898969206","5989879672061111")
 	es_admin = recibido.get('WaId')
-
-	responded = False
 
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
 	if recibido.get('SmsStatus') == 'received':	
@@ -171,6 +170,10 @@ def mybot():
 			if not responded:
 				msg.body(msg_ERROR)
 				responded = True
+
+		if not incoming_msg_media and texto_separado[0].lower() == "modificar" and not responded:
+			msg.body("Modificar un archivo")
+			responded = True 
 
 		# Solo texto
 		if not incoming_msg_media and not responded:
