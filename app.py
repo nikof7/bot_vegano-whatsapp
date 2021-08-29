@@ -63,8 +63,8 @@ def mybot():
 	
 	# Variables de respuesta
 	msg_ERROR = "Algo salió mal."
-	msg_ERROR_NUEVO_PRODUCTO_TEXTO = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio"
-	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen"
+	msg_ERROR_NUEVO_PRODUCTO_TEXTO = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio."
+	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen."
 	msg_BIENVENIDA = "Para comprobar si un producto es vegano, mandanos una foto del código de barras."
 
 	# Variables para obtener información de mensaje.
@@ -136,19 +136,9 @@ def mybot():
 					msg.body(msg_ERROR_LEER_IMAGEN)
 					responded = True
 
-				# Por las dudas de que exista algún error.
-				else:
-					msg.body(msg_ERROR)
-					responded = True
-
 			# Respuesta cuando el texto está mal.
 			if not responded:
-				msg.body(msg_ERROR_NUEVO_PRODUCTO)
-				responded = True
-
-			# Por las dudas de que exista algún error.
-			else:
-				msg.body(msg_ERROR)
+				msg.body(msg_ERROR_NUEVO_PRODUCTO_TEXTO)
 				responded = True
 
 		# Llega imágen, leo el código y devuelvo si está en la base o no (ignoro texto).
