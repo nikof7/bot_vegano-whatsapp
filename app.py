@@ -73,7 +73,7 @@ def mybot():
 	responded = False
 
 	# Roles
-	administradores = ("59898969206","5989879672061111")
+	administradores = ("59898969206","59892964971")
 	es_admin = recibido.get('WaId')
 
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
@@ -163,7 +163,7 @@ def mybot():
 						responded = True
 
 				if codigo_existe[0] == False:
-					msg.body('no está en la base')
+					msg.body('El producto no se encuentra en nuestra base de datos. Si quieres ayudarnos escribe _*"Ayuda"*_')
 					responded = True 
 
 			# Por las dudas de que exista algún error.
@@ -182,7 +182,7 @@ def mybot():
 
 		# Solo texto
 		if not incoming_msg_media and not responded:
-			msg.body(f'🌱🤖 *{nombre_usuario}*, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_  🌸')
+			msg.body(f'🌱🤖 *{nombre_usuario}*, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_')
 			responded = True
 
 
