@@ -73,7 +73,7 @@ def mybot():
 	responded = False
 
 	# Roles
-	administradores = ("59898969206","59892964971")
+	administradores = ("598969206","59892964971")
 	es_admin = recibido.get('WaId')
 
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
