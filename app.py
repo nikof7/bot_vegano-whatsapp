@@ -25,96 +25,97 @@ class Productos(db.Model):
 	def __repr__(self):
 		return "<Producto %r>" % self.nombre
 
-def imagen_a_codigo(url):
-    # Busca un producto, utilizando su código de barras, en la base de datos.
+def img_to_code(url):
+    # Busca un producto en la base de datos, utilizando su código de barras.
     response = requests.get(url)
     try:
         img = Image.open(BytesIO(response.content))
         decoding = str(decode(img)[0][0])
-        incoming_codigo = decoding.split("'")[1]
+        ing_code = decoding.split("'")[1]
     except:
-        incoming_codigo = False
-    return incoming_codigo
+        ing_code = False
+    return ing_code
 
-def busca_codigo(codigo_leido):
+def search_code(inc_code):
 
-	consulta = Productos.query.filter_by(codigo=codigo_leido).first()
+	query = Productos.query.filter_by(codigo=inc_code).first()
 	
-	if consulta:
-		nombreProducto = consulta.nombre
-		esveganProducto = consulta.esvegan.lower() 
-		existe = True
+	if query:
+		exists = True
+		product_name = query.nombre
+		is_it_vegan = query.esvegan.lower() 
 
-	if consulta == None:
-		nombreProducto = " "
-		esveganProducto = " "
-		existe = False
+	if query == None:
+		exists = False
+		product_name = " "
+		is_it_vegan = " "
 
-	return existe, nombreProducto, esveganProducto
+	return exists, product_name, is_it_vegan
 
-def separa_texto(incoming_msg_body):
-	corrigo1 = incoming_msg_body.replace(" ,", ",")
-	corrigo2 = corrigo1.replace(", ", ",")
-	texto_separado = corrigo2.split(",")
-	return texto_separado
+def split_txt(ing_msg_body):
+	txt_msg_ = []
+	str_splitted = ing_msg_body.split(",")
+	for i in str_splitted:
+		txt_msg_.append(' '.join(i.split()))
+	return txt_msg_
 
 @app.route('/mybot', methods = ['POST', 'GET'])
 def mybot():
 	
 	# Variables de respuesta
 	msg_ERROR = "Algo salió mal."
-	msg_ERROR_NUEVO_PRODUCTO_TEXTO = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio."
-	msg_ERROR_LEER_IMAGEN = "No se pudo leer la imagen."
+	msg_ERROR_NEW_PRODUCT = "Para crear un nuevo producto debes escribir\nNuevo, titulo, ¿es vegano?, comentario\nEjemplo: Nuevo, Pure de papas Hornex, si, alto en sodio."
+	msg_ERROR_READ_IMG = "No se pudo leer la imagen."
 
 	# Variables para manejar los mensajes.
 	resp = MessagingResponse()
 	msg = resp.message()
-	recibido = request.values
+	received = request.values
 	responded = False
 
 	# Roles
-	administradores = ("598969206","59892964971")
-	es_admin = recibido.get('WaId')
+	admins = ("59898969206","59892964971")
+	inc_phone_number = received.get('WaId')
 
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
-	if recibido.get('SmsStatus') == 'received':	
+	if received.get('SmsStatus') == 'received':	
 			
-		incoming_msg_body = recibido.get('Body')
-		incoming_msg_media = recibido.get('MediaUrl0')
-		nombre_usuario = recibido.get('ProfileName')
-		texto_separado = separa_texto(incoming_msg_body)
+		ing_msg_body = received.get('Body')
+		ing_msg_media = received.get('MediaUrl0')
+		usr_name = received.get('ProfileName')
+		txt_msg = split_txt(ing_msg_body)
 
-		# Texto e imagen para administradores
-		if incoming_msg_body and incoming_msg_media and es_admin in administradores and not responded:
+		# Texto e imagen para admins
+		if ing_msg_body and ing_msg_media and inc_phone_number in admins and not responded:
 
 			# Si el texto empieza con NUEVO, es para agregar un producto.
-			if texto_separado[0].lower() == 'nuevo' and len(texto_separado) >=3 and es_admin in administradores and not responded:
+			if txt_msg[0].lower() == 'nuevo' and len(txt_msg) >=3 and inc_phone_number in admins and not responded:
 				
-				codigo_leido = imagen_a_codigo(incoming_msg_media)
+				inc_code = img_to_code(ing_msg_media)
 
 				# Se pudo leer la imagen:
-				if codigo_leido != False and not responded: 
+				if inc_code != False and not responded: 
 					
-					codigo_existe = busca_codigo(codigo_leido)
+					product_info = search_code(inc_code)
 					
 					# Respuesta a cuando el código se encuentra en la base de datos.
-					if codigo_existe[0] ==  True:
-						if codigo_existe[2] == "si":
-							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y es vegano!')
+					if product_info[0] ==  True:
+						if product_info[2] == "si":
+							msg.body(f'¡No se pudo crear el nuevo producto, {product_info[1]} ya se encuentra registrado y es vegano!')
 							responded = True
-						if codigo_existe[2] == "no":
-							msg.body(f'¡No se pudo crear el nuevo producto, {codigo_existe[1]} ya se encuentra registrado y NO es vegano!')
+						if product_info[2] == "no":
+							msg.body(f'¡No se pudo crear el nuevo producto, {product_info[1]} ya se encuentra registrado y NO es vegano!')
 							responded = True
 						
-					if codigo_existe[0] == False and texto_separado and not responded:
+					if product_info[0] == False and txt_msg and not responded:
 					
-						nombre = texto_separado[1]
-						esvegan = texto_separado[2]
-						codigo = int(codigo_leido)
+						nombre = txt_msg[1]
+						esvegan = txt_msg[2]
+						codigo = int(inc_code)
 
 						# Este if es porque los comentarios no son obligatorios.
-						if len(texto_separado) > 3:
-							comentario = texto_separado[3]
+						if len(txt_msg) > 3:
+							comentario = txt_msg[3]
 						else:
 							comentario = "Sin comentarios"
 
@@ -131,38 +132,38 @@ def mybot():
 							responded = True
 
 				# No se pudo leer la imagen.
-				if codigo_leido == False:
-					msg.body(msg_ERROR_LEER_IMAGEN)
+				if inc_code == False:
+					msg.body(msg_ERROR_READ_IMG)
 					responded = True
 
 			# Respuesta cuando el texto está mal.
 			if not responded:
-				msg.body(msg_ERROR_NUEVO_PRODUCTO_TEXTO)
+				msg.body(msg_ERROR_NEW_PRODUCT)
 				responded = True
 
 		# Llega imágen, leo el código y devuelvo si está en la base o no (ignoro texto).
-		if incoming_msg_media and not responded:
+		if ing_msg_media and not responded:
 			
 			# Leo el codigo de barras de la imagen
-			codigo_leido = imagen_a_codigo(incoming_msg_media)
+			inc_code = img_to_code(ing_msg_media)
 
 			# Error al leer la imagen.
-			if codigo_leido == False:
-				msg.body(msg_ERROR_LEER_IMAGEN)
+			if inc_code == False:
+				msg.body(msg_ERROR_READ_IMG)
 				responded = True
 
-			if codigo_leido != False and not responded: 
-				codigo_existe = busca_codigo(codigo_leido)
-				if codigo_existe[0] ==  True:
-					if codigo_existe[2] == "si":
-						msg.body(f'¡El producto: {codigo_existe[1]}  es vegano!')
+			if inc_code != False and not responded: 
+				product_info = search_code(inc_code)
+				if product_info[0] ==  True:
+					if product_info[2] == "si":
+						msg.body(f'¡El producto: {product_info[1]}  es vegano!')
 						responded = True
 
-					if codigo_existe[2] == "no":
-						msg.body(f'¡El producto: {codigo_existe[1]} NO es vegano!')
+					if product_info[2] == "no":
+						msg.body(f'¡El producto: {product_info[1]} NO es vegano!')
 						responded = True
 
-				if codigo_existe[0] == False:
+				if product_info[0] == False:
 					msg.body('El producto no se encuentra en nuestra base de datos. Si quieres ayudarnos escribe _*"Ayuda"*_')
 					responded = True 
 
@@ -171,18 +172,18 @@ def mybot():
 				msg.body(msg_ERROR)
 				responded = True
 
-		if not incoming_msg_media and texto_separado[0].lower() == "modificar" and not responded:
+		if not ing_msg_media and txt_msg[0].lower() == "modificar" and not responded:
 			msg.body("Modificar un archivo")
 			responded = True 
 
 		# Solo texto (AYUDA)
-		if texto_separado[0].lower() == "ayuda" and not responded:
+		if txt_msg[0].lower() == "ayuda" and not responded:
 			msg.body('🌱 Para ayudarte a conocer si un producto es vegano, solo mándanos una foto del _*código de barras*_.\n\n🆘 ¿Quieres ayudar a generar nuestra base de datos?, infórmanos sobre algún producto vegano en este formulario:\nhttps://forms.gle/P7pg5FJSt6dZYFrT9\n\n💰 Si quieres *colaborar* con este emprendimiento, puedes ayudarnos a través de *mercadopago*\nhttps://mpago.la/1G1a9GF')
 			responded = True
 
 		# Solo texto
-		if not incoming_msg_media and not responded:
-			msg.body(f'🌱🤖 *{nombre_usuario}*, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_')
+		if not ing_msg_media and not responded:
+			msg.body(f'🌱🤖 *{usr_name}*, soy un ```robot vegano``` que te ayuda a conocer qué productos son *aptos*.\n\n📷 Si me envías una foto del *código de barras* del producto, puedo decirte si es vegano o no. Pueden ser alimentos, artículos de higiene personal, cosméticos, etc.\n\nℹ️ Para más información escribe _*"Ayuda"*_.\n\n🌸 Gracias por usar _*botVegano_uy*_ {inc_phone_number}')
 			responded = True
 
 
