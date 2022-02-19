@@ -72,9 +72,8 @@ def mybot():
 	msg = resp.message()
 	received = request.values
 	responded = False
-
 	# Roles
-	admins = ("59898969206","59892964971")
+	admins = ("5989896922206","5989296422971")
 	inc_phone_number = received.get('WaId')
 
 	# Este if es para que no entre a este código cuando llega el mensaje de 'received' y 'delivered'
