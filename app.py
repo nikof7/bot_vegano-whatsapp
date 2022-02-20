@@ -72,7 +72,7 @@ def change_product(inc_code, is_vegan):
 		msg.body(f'❌ Error al modificar el producto, prueba nuevamente. ❌')
 		responded = True
 
-@app.route('/mybot', methods = ['POST', 'GET'])
+@app.route('/', methods = ['POST', 'GET'])
 def mybot():
 	
 	# Variables de respuesta
