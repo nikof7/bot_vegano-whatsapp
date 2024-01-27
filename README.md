@@ -1,4 +1,4 @@
-# botVegano
+# bot_vegano-whatsapp
 
 Este es un BOT de WhatsApp creado en Python.
 
